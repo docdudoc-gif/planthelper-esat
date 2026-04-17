@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlantHelper ESAT</title>
+
+<style>
+body { font-family: Arial; background:#f0fdf4; text-align:center; padding:20px; }
+h1 { color:#10B981; }
+
+button {
+  padding:20px;
+  font-size:18px;
+  background:#10B981;
+  color:white;
+  border:none;
+  border-radius:12px;
+  width:100%;
+  margin-top:10px;
+}
+
+#result {
+  margin-top:20px;
+  padding:15px;
+  background:white;
+  border-radius:12px;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌱 PlantHelper ESAT</h1>
+
+<button onclick="document.getElementById('camera').click()">
+📸 Prendre une photo
+</button>
+
+<input type="file" accept="image/*" id="camera" style="display:none">
+
+<div id="result">
+  <h2 id="plant"></h2>
+  <div id="advice"></div>
+</div>
+
+<script>
+
+const PLANTNET_KEY = "TA_CLE_PLANTNET";
+
+document.getElementById("camera").addEventListener("change", async function(e) {
+
+  const file = e.target.files[0];
+  if (!file) return;
+
+  document.getElementById("plant").innerText = "Analyse...";
+
+  // 🌿 PLANTNET
+  const form = new FormData();
+  form.append("images", file);
+
+  const plantRes = await fetch(
+    "https://my-api.plantnet.org/v2/identify/all?api-key=" + PLANTNET_KEY,
+    { method: "POST", body: form }
+  );
+
+  const plantData = await plantRes.json();
+
+  let plantName = "Plante inconnue";
+
+  if (plantData?.results?.length > 0) {
+    plantName =
+      plantData.results[0].species?.commonNames?.[0] ||
+      plantData.results[0].species?.scientificName;
+  }
+
+  // 🤖 IA backend
+  const ai = await fetch("/api/diagnose", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ plant: plantName })
+  });
+
+  const data = await ai.json();
+
+  document.getElementById("result").style.display = "block";
+  document.getElementById("plant").innerText = plantName;
+  document.getElementById("advice").innerText = data.text;
+
+  speechSynthesis.speak(new SpeechSynthesisUtterance(data.text));
+
+});
+
+</script>
+
+</body>
+</html>

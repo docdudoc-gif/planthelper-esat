@@ -34,11 +34,24 @@ button {
 
 <h1>🌱 PlantHelper ESAT</h1>
 
-<button onclick="document.getElementById('camera').click()">
-📸 Prendre une photo
-</button>
-
-<input type="file" accept="image/*" id="camera" style="display:none">
+<label style="
+display:block;
+padding:20px;
+background:#10B981;
+color:white;
+border-radius:12px;
+font-size:20px;
+margin-top:20px;
+">
+📸 Prendre ou choisir une photo
+<input 
+  type="file" 
+  accept="image/*"
+  capture="environment"
+  id="camera"
+  style="display:block; margin-top:10px;"
+>
+</label>
 
 <div id="result">
   <h2 id="plant"></h2>

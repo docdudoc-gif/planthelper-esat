@@ -1,32 +1,54 @@
-export default async function handler(req, res) {
+document.getElementById("camera").addEventListener("change", async function(e) {
 
-  const { plant } = req.body;
+  const file = e.target.files[0];
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + process.env.OPENAI_API_KEY
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "Tu es un expert jardinier pour personnes en situation de handicap. Réponds avec 3 conseils simples."
-        },
-        {
-          role: "user",
-          content: "Plante: " + plant
-        }
-      ],
-      temperature: 0.3
-    })
-  });
+  if (!file) {
+    alert("Aucune image sélectionnée");
+    return;
+  }
 
-  const data = await response.json();
+  document.getElementById("result").style.display = "block";
+  document.getElementById("plant").innerText = "Analyse en cours...";
+  document.getElementById("advice").innerText = "";
 
-  res.status(200).json({
-    text: data.choices[0].message.content
-  });
-}
+  try {
+
+    const form = new FormData();
+    form.append("images", file);
+
+    const plantRes = await fetch(
+      "https://my-api.plantnet.org/v2/identify/all?api-key=TA_CLE_PLANTNET",
+      { method: "POST", body: form }
+    );
+
+    const plantData = await plantRes.json();
+
+    let plantName = "Plante inconnue";
+
+    if (plantData?.results?.length > 0) {
+      plantName =
+        plantData.results[0].species?.commonNames?.[0] ||
+        plantData.results[0].species?.scientificName;
+    }
+
+    const ai = await fetch("/api/diagnose", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ plant: plantName })
+    });
+
+    const data = await ai.json();
+
+    document.getElementById("plant").innerText = plantName;
+    document.getElementById("advice").innerText = data.text;
+
+    speechSynthesis.speak(new SpeechSynthesisUtterance(data.text));
+
+  } catch (err) {
+
+    document.getElementById("plant").innerText = "Erreur";
+    document.getElementById("advice").innerText = "Réessayer avec une autre photo";
+
+    alert("Erreur technique");
+  }
+});
